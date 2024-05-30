@@ -1,0 +1,670 @@
+---
+title: "MappingR - Visualización de datos espaciales en R"
+author: "Beatriz M. Meriño - bvergaram@gmail.com"
+date: "04 de Junio de 2024"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    collapsed: false
+    smooth_scroll: true
+    theme: journal
+    highlight: kate
+    df_print: paged
+    code_folding: show
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+------------------------------------------------------------------------
+
+# CONFIGURACIONES IMPORTANTES
+
+------------------------------------------------------------------------
+
+## Clonar Git-Hub
+
+### Crear nuevo proyecto
+
+![](data/screns/1.png)
+
+### Version control
+
+![](data/screns/2.png)
+
+### Git
+
+![](data/screns/3.png)
+
+### Cargar ruta
+
+![](data/screns/4.png)
+
+#### **https://github.com/beeamerino/BIODATA-MappingR.git** 
+
+------------------------------------------------------------------------
+
+## Cargar librerias
+
+```{r message=F, warning=F}
+library("giscoR")
+library("terra")
+library("elevatr")
+library("ggmap")
+library("geodata")
+library("ggplot2")
+library("dplyr")
+library("rnaturalearth")
+library("sf")
+library("grid")
+library("ggspatial")
+library("cowplot")
+library("tidyterra")
+library("scales")
+library("colorspace")
+```
+
+------------------------------------------------------------------------
+
+## Ajustar directorio de trabajo
+
+Si descargaste directamente de Git-Hub, es importante ajustar el
+directorio de trabajo para poder cargar datos y exportar las salidas
+gráficas.
+
+```{r}
+setwd("~/Desktop/BioDataClub/BIODATA-MappingR")
+```
+
+------------------------------------------------------------------------
+
+# BASES DE DATOS LIBRES
+
+------------------------------------------------------------------------
+
+## Límites Administrativos. GISCO
+
+-   [GISCO](https://ec.europa.eu/eurostat/web/gisco) es un repositorio
+    abierto de datos geoespaciales que incluye varios conjuntos de datos
+    como países, líneas costeras, etiquetas o niveles
+    [**NUTS**](https://ec.europa.eu/eurostat/web/regions-and-cities/overview).
+    Los conjuntos de datos se proporcionan normalmente en varios niveles
+    de resolución (60M/20M/10M/03M/01M) y en 3 proyecciones diferentes
+    (4326/3035/3857).
+
+-   Tenga en cuenta que la librería no proporciona metadatos sobre los
+    archivos descargados, la información está disponible en la página
+    web [API
+    webpage](https://gisco-services.ec.europa.eu/distribution/v2/).
+
+-   Página completa con ejemplos y viñetas en
+    <https://ropengov.github.io/giscoR/>
+
+Buscar información para extraer límites administrativos:
+
+```{r}
+?gisco_get_countries
+```
+
+Extraer límites administrativos de Chile.
+
+```{r}
+chile <- gisco_get_countries(country = "Chile", resolution = "01")
+plot(chile)
+```
+
+------------------------------------------------------------------------
+
+## Datos climáticos usando geodata
+
+-   **geodata** es una librería para descargar datos geográficos.
+    Facilita el acceso a datos de clima, elevación, suelo, cultivos,
+    presencia de especies y límites administrativos, y es un sucesor de
+    la función `getData()` del paquete **raster**.
+
+### Worldclim. Temperatura Mínima usando geodata
+
+-   [WorldClim](https://worldclim.org/data/index.html) es una base de
+    datos de alta resolución espacial de datos meteorológicos y
+    climáticos mundiales. Puede descargar datos meteorológicos y
+    climáticos de cuadrícula para
+    [históricos](https://worldclim.org/data/worldclim21.html) (casi
+    actual) y
+    [futuros](https://worldclim.org/data/cmip6/cmip6climate.html).
+
+-   Hay datos climáticos mensuales de temperatura mínima, media y máxima
+    precipitación, radiación solar, velocidad del viento, presión de
+    vapor de agua y precipitaciones totales.
+
+```{r}
+?worldclim_country
+```
+
+```{r}
+chile.tmin <- worldclim_country(country = "Chile", var = "tmin", 
+                                path = ("data/climatic")) 
+
+terra::plot(mean(chile.tmin), plg = list(title ="Temperatura Minima Anual (C)"))
+```
+
+------------------------------------------------------------------------
+
+### Worlclim. Bioclim usando geodata
+
+-   También hay 19 variables
+    «[bioclimáticas](https://worldclim.org/data/bioclim.html)». Las
+    variables bioclimáticas derivan de los valores mensuales de
+    temperatura y precipitaciones para generar variables con mayor
+    significado biológico. A menudo se utilizan en modelos de
+    distribución de especies y en técnicas de modelado ecológico
+    relacionadas.
+
+```{r}
+chile.bios <- worldclim_country(country = "Chile", var = "bio", 
+                                path = ("data/climatic")) 
+
+terra::plot(chile.bios)
+```
+
+------------------------------------------------------------------------
+
+### Soilgrid usando geodata
+
+-   [SoilGrids](https://soilgrids.org) es un sistema de cartografía
+    digital que utiliza información global sobre el perfil del suelo y
+    datos de covarianza para modelar la distribución espacial de las
+    propiedades del suelo en todo el mundo.
+
+```{r}
+?soil_world
+```
+
+```{r}
+soil <- soil_world(var = c("nitrogen", "ocd", "phh2o", "sand", "silt"), 
+                   depth = 60, path = "data/climatic")
+
+chile.soil <- crop(soil,chile)
+
+terra::plot(chile.soil)
+```
+
+------------------------------------------------------------------------
+
+## Elevación usando geodata
+
+```{r}
+?elevation_30s
+```
+
+```{r}
+chile.elevacion <- elevation_30s(country="Chile", path=("data/elevation"), 
+                                 mask = TRUE) 
+
+terra::plot(chile.elevacion)
+```
+
+------------------------------------------------------------------------
+
+## Elevación usando elevatr
+
+-   El paquete **elevatr** proporciona acceso a datos de elevación de
+    Datos abiertos de AWS [Terrain
+    Tiles](https://registry.opendata.aws/terrain-tiles/) y el Open
+    Topography [Global datasets
+    API](https://opentopography.org/developers#API) para modelos de
+    elevación raster. Para los datos de elevación de puntos, pueden
+    utilizarse [USGS Elevation Point Elevation Point Query
+    Service](https://apps.nationalmap.gov/epqs/) o las elevaciones
+    puntuales pueden derivarse de los AWS Tiles.
+
+```{r}
+?get_elev_raster
+```
+
+```{r}
+#chile_elevacion <- get_elev_raster(locations = chile, 
+#                                    z = 9, 
+#                                    clip = "locations", 
+#                                    neg_to_na = TRUE, 
+#                                    override_size_check = TRUE) 
+
+#writeRaster(chile_elevacion, "data/elevation/CHL_elv_.tif")
+
+chile_elevacion <- rast("data/elevation/CHL_elv_6.tif")
+
+terra::plot(chile_elevacion)
+```
+
+------------------------------------------------------------------------
+
+## Mosaico Satelital usando ggmap
+
+-   **ggmap** es un paquete de R que facilita la recuperación de mapas
+    raster de servicios cartográficos en línea como
+    [GoogleMaps](https://developers.google.com/maps/documentation/maps-static?hl=en),
+    [Stadia Maps](https://stadiamaps.com/), y
+    [OpenStreetMap](https://www.openstreetmap.org/) y representarlos
+    gráficamente con el programa
+    [**ggplot2**](https://github.com/tidyverse/ggplot2).
+
+### Stadia Maps
+
+-   Stadia Maps ofrece recursos cartográficos de varios estilos,
+    incluidos los actualizados [tiles from Stamen
+    Design](https://stadiamaps.com/stamen/). Se requiere una clave API.
+
+-   [revisar: registrarse](https://client.stadiamaps.com/signup) y hay
+    un nivel gratuito para uso no comercial. Una vez que tengas tu clave
+    API, invoca el registro función:
+    `register_stadiamaps(«YOUR-API-KEY», write = F)`.
+
+```{r}
+#Reemplaza con tu clave API
+#??register_stadiamaps
+#https://client.stadiamaps.com/signup/
+
+register_stadiamaps(key = "08ae447c-604f-412c-b523-a8e693f21c20")
+
+#register_stadiamaps(key = "TU-API-AQUI")
+```
+
+```{r}
+bbox <- c(left = -80, bottom = -60, right = -65, top = -15) 
+map <- get_stadiamap(bbox, zoom = 6, maptype = "stamen_terrain_background", 
+                     where = "data/layers") 
+
+ggmap(map) +
+theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+# PLOT 1: Anotación del mapa
+
+------------------------------------------------------------------------
+
+## Cargar Datos de Ocurrencias
+
+```{r}
+occ.data <- read.csv("data/occs/palms.and.degus.csv")
+head(occ.data)
+```
+
+```{r}
+plot.data <- occ.data %>% mutate(Species.name = gsub("_", ". ", Species))
+head(plot.data)
+```
+
+------------------------------------------------------------------------
+
+## Cargar Mapas de referencia
+
+```{r}
+regions <- ne_states(country = "Chile", returnclass = "sf")
+plot(regions)
+SurAmerica <- ne_countries(continent = "South America", returnclass = "sf")
+plot(SurAmerica)
+```
+
+------------------------------------------------------------------------
+
+## Plotear Mapa con Puntos de Ocurrencias
+
+```{r}
+raw.map <- plot.data %>%
+  ggplot() + 
+  geom_sf(data = regions, colour = "white", fill = "gray40") +
+  geom_point(aes(x = Longitude, y = Latitude, color = Species.name), 
+             alpha = 0.5) +
+  labs(color = "Species") +
+  xlim(-77, -66) +
+  theme_bw() +
+  scale_size_area()
+
+print(raw.map)
+```
+
+------------------------------------------------------------------------
+
+## Ajustar y añadir referencias geográficas
+
+```{r}
+adj.map <- plot.data %>%
+  ggplot() +
+  geom_sf(data = regions, color = "white", fill = "gray40") +
+  geom_point(aes(x = Longitude, y = Latitude, color = Species.name), 
+             alpha = 0.5) +
+  labs(color = "Species") +
+  xlim(-74, -70) +
+  ylim(-35.5, -28.5) +
+  theme_test() +
+  guides(size = "none") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(pad_y = unit(0.7, "cm"), pad_x = unit(0.6, "cm"),
+                         height = unit(1, "cm"), width = unit(1, "cm"), 
+                         which_north = "T")
+
+print(adj.map)
+```
+
+------------------------------------------------------------------------
+
+## Añadir Referencia Continental
+
+```{r}
+inset <- ggplot(data = SurAmerica) + 
+  geom_sf(color = "gray40", fill = "gray40") +
+  annotate("rect", xmin = -72, xmax = -69, ymin = -25.5, ymax = -28.5, color = "red", fill = NA) +
+  xlim(-80, -36) +
+  labs(x = NULL, y = NULL) +
+  theme_test() + 
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), 
+        axis.ticks.length = unit(0, "pt"), axis.title = element_blank(), 
+        plot.margin = margin(0, 0, 0, 0, "cm"))
+
+print(inset)
+```
+
+------------------------------------------------------------------------
+
+## Insertar Mapa de Referencia en el Mapa Ajustado
+
+```{r}
+final.map <- ggdraw() +
+  draw_plot(adj.map) +
+  draw_plot(inset, x = 0.234, y = 0.665, width = 0.3, height = 0.3)
+
+print(final.map)
+```
+
+------------------------------------------------------------------------
+
+## Exportar Plots
+
+### Guardar en formato PDF
+
+```{r}
+ggsave(plot = final.map, "data/plots/Figure1.pdf", width = 10, height = 7,
+       units = "in", dpi = 300)
+```
+
+### Guardar en formato JPG
+
+```{r}
+ggsave(plot = final.map, "data/plots/Figure1.jpg", width = 10, height = 7,
+       units = "in", dpi = 300)
+```
+
+------------------------------------------------------------------------
+
+# PLOT 2: Plot DEM
+
+------------------------------------------------------------------------
+
+## Cargar Mapas de referencia
+
+-   Usaremos **Chile** para descargar datos de elevación y "**Sur
+    América**" como referencia continental.
+
+```{r}
+regiones <- ne_states(country = "Chile", returnclass = "sf")
+SurAmerica <- ne_countries(continent = "South America", returnclass = "sf")
+```
+
+------------------------------------------------------------------------
+
+## Elevación usando geodata
+
+```{r}
+chile.elevacion <- elevation_30s(country="Chile", path=("data/elevation"), 
+                                 mask = TRUE)
+
+names(chile.elevacion) <- "elv"
+
+terra::plot(chile.elevacion)
+
+#ajustar en caso de que el dem tenga valores negativos
+chile.elevacion <- chile.elevacion %>%
+  mutate(elv = pmax(0, elv))
+
+terra::plot(chile.elevacion)
+```
+
+------------------------------------------------------------------------
+
+## Cortar por área de interés
+
+-   Ajustaremos el área de interes a Chile central para poder visualizar
+    el efecto del sombreado en la pendiente. Recordar que en áreas más
+    grandes el tiempo de proceso puede demorar más y se necesitaran
+    mayores recursos computacionales.
+
+```{r}
+ext <- ext(-74, -70, -35.5, -31)
+elv <- crop(chile.elevacion, ext)
+
+terra::plot(elv)
+```
+
+```{r}
+#limites del raster
+# 
+elv_limits <- minmax(elv) %>% as.vector()
+# rounded to lower and upper 500
+elv_limits <- c(floor(elv_limits[1] / 500), ceiling(elv_limits[2] / 500)) * 500
+
+# min value = 0.
+elv_limits <- pmax(elv_limits, 0)
+# Comparar
+minmax(elv) %>% as.vector()
+elv_limits
+
+#plot dem
+grad <- hypso.colors(10)
+
+dem.plot<- autoplot(elv) +
+  scale_fill_gradientn(colours = grad, na.value = NA)
+dem.plot
+```
+
+------------------------------------------------------------------------
+
+## Crear efecto de sombreado
+
+-   Calcular las características del terreno a partir de los datos de
+    elevación. Los valores de elevación deben estar en las mismas
+    unidades que las unidades del mapa (normalmente metros) para datos
+    ráster proyectados (planos). Básicamente lo que queremos crear es
+    una capa que se aproxime a la «textura» potencial de la superficie
+    en función de la elevación y la posición del sol. Esto es sencillo
+    con las funciones `terra::terrain()` y `terra::shade()`.
+
+```{r}
+?terra::terrain
+```
+
+```{r}
+slope <- terrain(elv, "slope", unit = "radians")
+aspect <- terrain(elv, "aspect", unit = "radians")
+hill <- shade(slope, aspect, 0, 90)
+names(hill) <- "shades"
+
+# Sombreado
+pal_greys <- hcl.colors(1000, "Grays")
+
+hillshade <- ggplot() +
+  geom_spatraster(data = hill) +
+  scale_fill_gradientn(colors = pal_greys, na.value = NA)
+
+print(hillshade)
+```
+
+------------------------------------------------------------------------
+
+## Ajustar la paleta de colores
+
+```{r}
+pal_greys <- hcl.colors(1000, "Grays")
+index <- hill %>% 
+  mutate(index_col = rescale(shades, to = c(1, length(pal_greys)))) %>%
+  mutate(index_col = round(index_col)) %>% pull(index_col)
+
+vector_cols <- pal_greys[index]
+
+hill_plot <- ggplot() + 
+  geom_spatraster(data = hill, fill = vector_cols, maxcell = Inf, alpha = 1)
+
+print(hill_plot)
+
+```
+
+------------------------------------------------------------------------
+
+## Base plot con tidyterra
+
+-   [tidyterra](https://dieghernan.github.io/tidyterra/articles/tidyterra.html)
+    proporciona gradientes adicionales cuyos colores se colocan de forma
+    desigual con el objetivo de proporcionar una mejor comprensión de
+    los mapas. Por ejemplo, por convención los colores verdes se asocian
+    a elevaciones bajas mientras que los naranjas, marrones y blancos se
+    asocian a elevaciones altas en algunas de las paletas de elevación
+    más comunes (también conocidas como tintes hipsométricos). [Paletas
+    de colores para representar la hipsometría y la batimetría con
+    tidyterra](https://dieghernan.github.io/tidyterra/reference/scale_hypso.html)
+
+```{r}
+base_plot <- hill_plot + 
+  geom_spatraster(data = elv, maxcell = Inf) +
+  scale_fill_hypso_tint_c(
+    limits = elv_limits,
+    palette = "dem_screen",
+    alpha = 0.5, 
+    labels = label_comma())
+
+print(base_plot)
+```
+
+------------------------------------------------------------------------
+
+## Ajustar base plot
+
+```{r}
+base_text_size <- 10
+
+base.map <- base_plot + 
+  guides(fill = guide_legend(title = " Altitude  m.", 
+                             direction = "vertical", 
+                             keywidth = 1, 
+                             keyheight = 1, 
+                             label.position = "right",
+                             title.position = "top", 
+                             override.aes = list(alpha = 0.5))) + 
+  labs(x="Longitude", y="Latitude") + 
+  theme_minimal() + 
+  theme(plot.background = element_rect("grey97", colour = NA), 
+        plot.margin = margin(20, 20, 20, 20), 
+        plot.caption = element_text(size = base_text_size * 0.5), 
+        plot.title = element_text(face = "bold", size = base_text_size * 0.9), 
+        axis.text = element_text(size = base_text_size), 
+        legend.position = "right", 
+        legend.title = element_text(size = base_text_size * 0.8), 
+        legend.text = element_text(size = base_text_size * 0.8), 
+        legend.key = element_rect("grey50"), 
+        legend.spacing.x = unit(2, "pt"))
+
+print(base.map)
+```
+
+------------------------------------------------------------------------
+
+## Plot datos de ocurrencia
+
+```{r}
+occ.data <- read.csv("data/occs/palms.and.degus.csv")
+head(occ.data)
+```
+
+```{r}
+occ.data <- occ.data %>% mutate(Species.name = gsub("_", ". ", Species))
+palma.occs <- subset(occ.data, Species == "J_chilensis")
+head(palma.occs)
+```
+
+```{r}
+species.plot <- base.map + 
+  geom_point(data = palma.occs, aes(x = Longitude, y = Latitude), 
+             alpha = 0.5, colour= "gray20", size=2.5) + 
+  geom_point(data = palma.occs, aes(x = Longitude, y = Latitude, colour = Species.name), 
+             colour = "deeppink", alpha = 0.75, size=2) + 
+  annotation_scale(location = "bl") + 
+  annotation_north_arrow(pad_y = unit(0.7, "cm"), 
+                         pad_x = unit(0.6, "cm"), 
+                         height = unit(1, "cm"), 
+                         width = unit(1, "cm"), 
+                         which_north = "T")
+
+print(species.plot)
+```
+
+------------------------------------------------------------------------
+
+## Añadir Referencia Continental
+
+```{r}
+inset <- ggplot(data = SurAmerica) + 
+  geom_sf(color = "gray40", fill = "gray40") + 
+  annotate("rect", xmin = -72, xmax = -69, ymin = -25.5, ymax = -28.5, color = "red", fill = NA) + xlim(-80, -36) + 
+  labs(x = NULL, y = NULL) + 
+  theme_void() + 
+  theme(panel.background = element_rect(fill = "transparent", color = NA), 
+        plot.background = element_rect(fill = "transparent", color = NA), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.ticks.length = unit(0, "pt"), 
+        axis.title = element_blank(), 
+        plot.margin = margin(0, 0, 0, 0, "cm"))
+
+print(inset)
+```
+
+------------------------------------------------------------------------
+
+## Insertar Mapa de Referencia en el Mapa Ajustado
+
+```{r}
+final.map <- ggdraw() + 
+  draw_plot(species.plot) + 
+  draw_plot(inset, x = 0.225, y = 0.62, width = 0.3, height = 0.3)
+
+print(final.map)
+```
+
+------------------------------------------------------------------------
+
+## Exportar Plots
+
+### Guardar en formato PDF
+
+```{r}
+ggsave(plot = final.map, "data/plots/Figure2.pdf", 
+       width = 10, 
+       height = 7, 
+       units = "in", 
+       dpi = 300)
+```
+
+### Guardar en formato JPG
+
+```{r}
+ggsave(plot = final.map, "data/plots/Figure2.jpg", 
+       width = 10, 
+       height = 7, 
+       units = "in", 
+       dpi = 300)
+```
+
+------------------------------------------------------------------------
+
+save.image("\~/Desktop/BioDataClub/BIODATA-MappingR/MappingR.RData")
