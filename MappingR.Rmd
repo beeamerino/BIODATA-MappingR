@@ -273,15 +273,6 @@ terra::plot(chile_elevacion)
 
 -   [revisar: registrarse](https://client.stadiamaps.com/signup) y hay un nivel gratuito para uso no comercial. Una vez que tengas tu clave API, invoca el registro función: `register_stadiamaps(«YOUR-API-KEY», write = F)`.
 
-```{r include=FALSE}
-#Reemplaza con tu clave API
-#??register_stadiamaps
-#https://client.stadiamaps.com/signup/
-
-register_stadiamaps(key = "08ae447c-604f-412c-b523-a8e693f21c20")
-
-#register_stadiamaps(key = "TU-API-AQUI")
-```
 
 ```{r}
 #Reemplaza con tu clave API
