@@ -42,7 +42,7 @@ editor_options:
 
 ![](data/screns/4.png)
 
-#### **https://github.com/beeamerino/BIODATA-MappingR.git** 
+> #### [**`https://github.com/beeamerino/BIODATA-MappingR.git`**](https://github.com/beeamerino/BIODATA-MappingR.git)
 
 ------------------------------------------------------------------------
 
@@ -111,7 +111,8 @@ Buscar información para extraer límites administrativos:
 Extraer límites administrativos de Chile.
 
 ```{r}
-chile <- gisco_get_countries(country = "Chile", resolution = "01")
+chile <- gisco_get_countries(country = "Chile", 
+                             resolution = "01")
 plot(chile)
 ```
 
@@ -143,7 +144,8 @@ plot(chile)
 ```
 
 ```{r}
-chile.tmin <- worldclim_country(country = "Chile", var = "tmin", 
+chile.tmin <- worldclim_country(country = "Chile", 
+                                var = "tmin", 
                                 path = ("data/climatic")) 
 
 terra::plot(mean(chile.tmin), plg = list(title ="Temperatura Minima Anual (C)"))
@@ -162,7 +164,8 @@ terra::plot(mean(chile.tmin), plg = list(title ="Temperatura Minima Anual (C)"))
     relacionadas.
 
 ```{r}
-chile.bios <- worldclim_country(country = "Chile", var = "bio", 
+chile.bios <- worldclim_country(country = "Chile", 
+                                var = "bio", 
                                 path = ("data/climatic")) 
 
 terra::plot(chile.bios)
@@ -182,10 +185,13 @@ terra::plot(chile.bios)
 ```
 
 ```{r}
-soil <- soil_world(var = c("nitrogen", "ocd", "phh2o", "sand", "silt"), 
-                   depth = 60, path = "data/climatic")
+#soil <- soil_world(var = c("nitrogen", "ocd", "phh2o", 
+#                           "sand", "silt"), 
+#                   depth = 60, path = "data/climatic")
 
-chile.soil <- crop(soil,chile)
+#chile.soil <- crop(soil,chile)
+#writeRaster(chile.soil, filename = "data/climatic/chile.soil.tif")
+chile.soil <- rast("data/climatic/chile.soil.tif")
 
 terra::plot(chile.soil)
 ```
@@ -199,7 +205,8 @@ terra::plot(chile.soil)
 ```
 
 ```{r}
-chile.elevacion <- elevation_30s(country="Chile", path=("data/elevation"), 
+chile.elevacion <- elevation_30s(country="Chile", 
+                                 path=("data/elevation"), 
                                  mask = TRUE) 
 
 terra::plot(chile.elevacion)
@@ -209,15 +216,7 @@ terra::plot(chile.elevacion)
 
 ## Elevación usando elevatr
 
--   El paquete **elevatr** proporciona acceso a datos de elevación de
-    Datos abiertos de AWS [Terrain
-    Tiles](https://registry.opendata.aws/terrain-tiles/) y el Open
-    Topography [Global datasets
-    API](https://opentopography.org/developers#API) para modelos de
-    elevación raster. Para los datos de elevación de puntos, pueden
-    utilizarse [USGS Elevation Point Elevation Point Query
-    Service](https://apps.nationalmap.gov/epqs/) o las elevaciones
-    puntuales pueden derivarse de los AWS Tiles.
+-   El paquete **elevatr** proporciona acceso a datos de elevación de Datos abiertos de AWS [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) y el Open Topography [Global datasets API](https://opentopography.org/developers#API) para modelos de elevación raster. Para los datos de elevación de puntos, pueden utilizarse [USGS Elevation Point Elevation Point Query Service](https://apps.nationalmap.gov/epqs/) o las elevaciones puntuales pueden derivarse de los AWS Tiles.
 
 ```{r}
 ?get_elev_raster
@@ -255,12 +254,9 @@ terra::plot(chile_elevacion)
     incluidos los actualizados [tiles from Stamen
     Design](https://stadiamaps.com/stamen/). Se requiere una clave API.
 
--   [revisar: registrarse](https://client.stadiamaps.com/signup) y hay
-    un nivel gratuito para uso no comercial. Una vez que tengas tu clave
-    API, invoca el registro función:
-    `register_stadiamaps(«YOUR-API-KEY», write = F)`.
+-   [revisar: registrarse](https://client.stadiamaps.com/signup) y hay un nivel gratuito para uso no comercial. Una vez que tengas tu clave API, invoca el registro función: `register_stadiamaps(«YOUR-API-KEY», write = F)`.
 
-```{r}
+```{r include=FALSE}
 #Reemplaza con tu clave API
 #??register_stadiamaps
 #https://client.stadiamaps.com/signup/
@@ -268,6 +264,15 @@ terra::plot(chile_elevacion)
 register_stadiamaps(key = "08ae447c-604f-412c-b523-a8e693f21c20")
 
 #register_stadiamaps(key = "TU-API-AQUI")
+```
+
+```{r}
+#Reemplaza con tu clave API
+#??register_stadiamaps
+#https://client.stadiamaps.com/signup/
+
+#Eliminar el # 
+#  register_stadiamaps(key = "TU-API-AQUI")
 ```
 
 ```{r}
@@ -284,6 +289,9 @@ theme_minimal()
 # PLOT 1: Anotación del mapa
 
 ------------------------------------------------------------------------
+
+Este tutorial es una versión modificada del proyecto y la sección de
+[datos espaciales](https://ourcodingclub.github.io/tutorials.html) del [Coding Club](https://ourcodingclub.github.io). Puedes modificar el código con sus propios datos para replicar las funciones.
 
 ## Cargar Datos de Ocurrencias
 
@@ -316,9 +324,11 @@ plot(SurAmerica)
 raw.map <- plot.data %>%
   ggplot() + 
   geom_sf(data = regions, colour = "white", fill = "gray40") +
-  geom_point(aes(x = Longitude, y = Latitude, color = Species.name), 
+  geom_point(aes(x = Longitude, 
+                 y = Latitude, 
+                 color = Species.name), 
              alpha = 0.5) +
-  labs(color = "Species") +
+  labs(color = "Species occurrence") +
   xlim(-77, -66) +
   theme_bw() +
   scale_size_area()
@@ -333,8 +343,12 @@ print(raw.map)
 ```{r}
 adj.map <- plot.data %>%
   ggplot() +
-  geom_sf(data = regions, color = "white", fill = "gray40") +
-  geom_point(aes(x = Longitude, y = Latitude, color = Species.name), 
+  geom_sf(data = regions, 
+          color = "white", 
+          fill = "gray40") +
+  geom_point(aes(x = Longitude, 
+                 y = Latitude, 
+                 color = Species.name), 
              alpha = 0.5) +
   labs(color = "Species") +
   xlim(-74, -70) +
@@ -342,8 +356,10 @@ adj.map <- plot.data %>%
   theme_test() +
   guides(size = "none") +
   annotation_scale(location = "bl") +
-  annotation_north_arrow(pad_y = unit(0.7, "cm"), pad_x = unit(0.6, "cm"),
-                         height = unit(1, "cm"), width = unit(1, "cm"), 
+  annotation_north_arrow(pad_y = unit(0.7, "cm"), 
+                         pad_x = unit(0.6, "cm"),
+                         height = unit(1, "cm"), 
+                         width = unit(1, "cm"), 
                          which_north = "T")
 
 print(adj.map)
@@ -355,13 +371,23 @@ print(adj.map)
 
 ```{r}
 inset <- ggplot(data = SurAmerica) + 
-  geom_sf(color = "gray40", fill = "gray40") +
-  annotate("rect", xmin = -72, xmax = -69, ymin = -25.5, ymax = -28.5, color = "red", fill = NA) +
+  geom_sf(color = "gray40", 
+          fill = "gray40") +
+  annotate("rect", 
+           xmin = -72, 
+           xmax = -69, 
+           ymin = -25.5, 
+           ymax = -28.5, 
+           color = "red", 
+           fill = NA) +
   xlim(-80, -36) +
-  labs(x = NULL, y = NULL) +
+  labs(x = NULL, 
+       y = NULL) +
   theme_test() + 
-  theme(axis.text = element_blank(), axis.ticks = element_blank(), 
-        axis.ticks.length = unit(0, "pt"), axis.title = element_blank(), 
+  theme(axis.text = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.ticks.length = unit(0, "pt"), 
+        axis.title = element_blank(), 
         plot.margin = margin(0, 0, 0, 0, "cm"))
 
 print(inset)
@@ -374,7 +400,10 @@ print(inset)
 ```{r}
 final.map <- ggdraw() +
   draw_plot(adj.map) +
-  draw_plot(inset, x = 0.234, y = 0.665, width = 0.3, height = 0.3)
+  draw_plot(inset, x = 0.234, 
+            y = 0.665, 
+            width = 0.3, 
+            height = 0.3)
 
 print(final.map)
 ```
@@ -383,18 +412,28 @@ print(final.map)
 
 ## Exportar Plots
 
+Mantener las dimensiones de un plot es crucial. Siempre lea las
+recomentaciones para autores de la revista y evite que el tamaño del
+plot supere una hoja A4 impresa. Si necesita corregir detalles usando un editor vectorial como Inkscape o Illustrator, el formato vectorial .pdf o .svg es una buena práctica. La revista siempre señala el formato con el cual debe entregar sus salidas gráficas.
+
 ### Guardar en formato PDF
 
 ```{r}
-ggsave(plot = final.map, "data/plots/Figure1.pdf", width = 10, height = 7,
-       units = "in", dpi = 300)
+ggsave(plot = final.map, "data/plots/Figure1.pdf", 
+       width = 10, 
+       height = 7,
+       units = "in", 
+       dpi = 300)
 ```
 
 ### Guardar en formato JPG
 
 ```{r}
-ggsave(plot = final.map, "data/plots/Figure1.jpg", width = 10, height = 7,
-       units = "in", dpi = 300)
+ggsave(plot = final.map, "data/plots/Figure1.jpg", 
+       width = 10, 
+       height = 7,
+       units = "in", 
+       dpi = 300)
 ```
 
 ------------------------------------------------------------------------
@@ -403,14 +442,18 @@ ggsave(plot = final.map, "data/plots/Figure1.jpg", width = 10, height = 7,
 
 ------------------------------------------------------------------------
 
+Los modelos de elevación digital (DEM) pueden ser utilizados para crear mapas complejos. Basados en un modelo de elevación, se estiman valores como pendientes y sombras para crear un efecto de relieve sin tener que renderizar un gráfico en 3D. Considera siempre factores como el área que quieres gráficar, la resolución y el tamaño de tu archivo ráster y la paleta de colores. Este tutorial es una dataptación del tutorial de **tidyterra** y [**como crear efectos de sombreado**](https://dieghernan.github.io/tidyterra/).
+
 ## Cargar Mapas de referencia
 
 -   Usaremos **Chile** para descargar datos de elevación y "**Sur
     América**" como referencia continental.
 
 ```{r}
-regiones <- ne_states(country = "Chile", returnclass = "sf")
-SurAmerica <- ne_countries(continent = "South America", returnclass = "sf")
+regiones <- ne_states(country = "Chile", 
+                      returnclass = "sf")
+SurAmerica <- ne_countries(continent = "South America", 
+                           returnclass = "sf")
 ```
 
 ------------------------------------------------------------------------
@@ -418,7 +461,8 @@ SurAmerica <- ne_countries(continent = "South America", returnclass = "sf")
 ## Elevación usando geodata
 
 ```{r}
-chile.elevacion <- elevation_30s(country="Chile", path=("data/elevation"), 
+chile.elevacion <- elevation_30s(country="Chile", 
+                                 path=("data/elevation"), 
                                  mask = TRUE)
 
 names(chile.elevacion) <- "elv"
@@ -436,10 +480,7 @@ terra::plot(chile.elevacion)
 
 ## Cortar por área de interés
 
--   Ajustaremos el área de interes a Chile central para poder visualizar
-    el efecto del sombreado en la pendiente. Recordar que en áreas más
-    grandes el tiempo de proceso puede demorar más y se necesitaran
-    mayores recursos computacionales.
+-   Ajustaremos el área de interes a Chile central para poder visualizar el efecto del sombreado en la pendiente. Recordar que en áreas más grandes el tiempo de proceso puede demorar más y se necesitaran mayores recursos computacionales.
 
 ```{r}
 ext <- ext(-74, -70, -35.5, -31)
@@ -452,8 +493,9 @@ terra::plot(elv)
 #limites del raster
 # 
 elv_limits <- minmax(elv) %>% as.vector()
-# rounded to lower and upper 500
-elv_limits <- c(floor(elv_limits[1] / 500), ceiling(elv_limits[2] / 500)) * 500
+# redondear los limites de los quiebres a 500
+elv_limits <- c(floor(elv_limits[1] / 500), 
+                ceiling(elv_limits[2] / 500)) * 500
 
 # min value = 0.
 elv_limits <- pmax(elv_limits, 0)
@@ -473,13 +515,7 @@ dem.plot
 
 ## Crear efecto de sombreado
 
--   Calcular las características del terreno a partir de los datos de
-    elevación. Los valores de elevación deben estar en las mismas
-    unidades que las unidades del mapa (normalmente metros) para datos
-    ráster proyectados (planos). Básicamente lo que queremos crear es
-    una capa que se aproxime a la «textura» potencial de la superficie
-    en función de la elevación y la posición del sol. Esto es sencillo
-    con las funciones `terra::terrain()` y `terra::shade()`.
+-   Calcular las *características del terreno* a partir de los datos de elevación. Los valores de elevación deben estar en las mismas unidades que las unidades del mapa (normalmente metros) para datos ráster proyectados (planos). Básicamente lo que queremos crear es una capa que se aproxime a la «textura» potencial de la superficie en función de la elevación y la posición del sol. Esto es sencillo con las funciones `terra::terrain()` y `terra::shade()`.
 
 ```{r}
 ?terra::terrain
@@ -508,13 +544,18 @@ print(hillshade)
 ```{r}
 pal_greys <- hcl.colors(1000, "Grays")
 index <- hill %>% 
-  mutate(index_col = rescale(shades, to = c(1, length(pal_greys)))) %>%
-  mutate(index_col = round(index_col)) %>% pull(index_col)
+  mutate(index_col = rescale(shades, 
+                             to = c(1, length(pal_greys)))) %>%
+  mutate(index_col = round(index_col)) %>% 
+  pull(index_col)
 
 vector_cols <- pal_greys[index]
 
 hill_plot <- ggplot() + 
-  geom_spatraster(data = hill, fill = vector_cols, maxcell = Inf, alpha = 1)
+  geom_spatraster(data = hill, 
+                  fill = vector_cols, 
+                  maxcell = Inf, 
+                  alpha = 1)
 
 print(hill_plot)
 
@@ -524,15 +565,7 @@ print(hill_plot)
 
 ## Base plot con tidyterra
 
--   [tidyterra](https://dieghernan.github.io/tidyterra/articles/tidyterra.html)
-    proporciona gradientes adicionales cuyos colores se colocan de forma
-    desigual con el objetivo de proporcionar una mejor comprensión de
-    los mapas. Por ejemplo, por convención los colores verdes se asocian
-    a elevaciones bajas mientras que los naranjas, marrones y blancos se
-    asocian a elevaciones altas en algunas de las paletas de elevación
-    más comunes (también conocidas como tintes hipsométricos). [Paletas
-    de colores para representar la hipsometría y la batimetría con
-    tidyterra](https://dieghernan.github.io/tidyterra/reference/scale_hypso.html)
+-   [tidyterra](https://dieghernan.github.io/tidyterra/articles/tidyterra.html) proporciona gradientes adicionales cuyos colores se colocan de forma desigual con el objetivo de proporcionar una mejor comprensión de los mapas. Por ejemplo, por convención los colores verdes se asocian a elevaciones bajas mientras que los naranjas, marrones y blancos se asocian a elevaciones altas en algunas de las paletas de elevación más comunes (también conocidas como tintes hipsométricos). [Paletas de colores para representar la hipsometría y la batimetría con tidyterra](https://dieghernan.github.io/tidyterra/reference/scale_hypso.html). [Referencias acá](https://dieghernan.github.io/tidyterra/articles/palettes.html#scale_fill_hypso_).
 
 ```{r}
 base_plot <- hill_plot + 
@@ -566,7 +599,8 @@ base.map <- base_plot +
   theme(plot.background = element_rect("grey97", colour = NA), 
         plot.margin = margin(20, 20, 20, 20), 
         plot.caption = element_text(size = base_text_size * 0.5), 
-        plot.title = element_text(face = "bold", size = base_text_size * 0.9), 
+        plot.title = element_text(face = "bold", 
+                                  size = base_text_size * 0.9), 
         axis.text = element_text(size = base_text_size), 
         legend.position = "right", 
         legend.title = element_text(size = base_text_size * 0.8), 
@@ -586,18 +620,39 @@ occ.data <- read.csv("data/occs/palms.and.degus.csv")
 head(occ.data)
 ```
 
+### Crear una paleta de colores personalizada
+
 ```{r}
-occ.data <- occ.data %>% mutate(Species.name = gsub("_", ". ", Species))
+palmas.pal <- c(
+  "J. chilensis" = "#FF9933", 
+  "O. degus" = "#0077B5")
+palmas.pal
+```
+
+```{r}
+occ.data <- occ.data %>% 
+  mutate(Species.name = gsub("_", ". ", Species))
+##Subset de palma
 palma.occs <- subset(occ.data, Species == "J_chilensis")
 head(palma.occs)
 ```
 
+### 
+
 ```{r}
 species.plot <- base.map + 
-  geom_point(data = palma.occs, aes(x = Longitude, y = Latitude), 
-             alpha = 0.5, colour= "gray20", size=2.5) + 
-  geom_point(data = palma.occs, aes(x = Longitude, y = Latitude, colour = Species.name), 
-             colour = "deeppink", alpha = 0.75, size=2) + 
+  geom_point(data = palma.occs, 
+             aes(x = Longitude, y = Latitude), 
+             alpha = 0.5, 
+             colour= "gray20", 
+             size=2.5) + 
+  geom_point(data = palma.occs, 
+             aes(x = Longitude, 
+                 y = Latitude, 
+                 colour = Species.name), 
+             alpha = 0.75, size=2) + 
+  scale_color_manual(values = palmas.pal) +
+  labs(color = "Species occurence") +
   annotation_scale(location = "bl") + 
   annotation_north_arrow(pad_y = unit(0.7, "cm"), 
                          pad_x = unit(0.6, "cm"), 
@@ -614,12 +669,23 @@ print(species.plot)
 
 ```{r}
 inset <- ggplot(data = SurAmerica) + 
-  geom_sf(color = "gray40", fill = "gray40") + 
-  annotate("rect", xmin = -72, xmax = -69, ymin = -25.5, ymax = -28.5, color = "red", fill = NA) + xlim(-80, -36) + 
-  labs(x = NULL, y = NULL) + 
+  geom_sf(color = "gray40", 
+          fill = "gray40") + 
+  annotate("rect", 
+           xmin = -72, 
+           xmax = -69, 
+           ymin = -25.5, 
+           ymax = -28.5, 
+           color = "red", 
+           fill = NA) + 
+  xlim(-80, -36) + 
+  labs(x = NULL, 
+       y = NULL) + 
   theme_void() + 
-  theme(panel.background = element_rect(fill = "transparent", color = NA), 
-        plot.background = element_rect(fill = "transparent", color = NA), 
+  theme(panel.background = element_rect(fill = "transparent", 
+                                        color = NA), 
+        plot.background = element_rect(fill = "transparent", 
+                                       color = NA), 
         axis.text = element_blank(), 
         axis.ticks = element_blank(), 
         axis.ticks.length = unit(0, "pt"), 
@@ -667,4 +733,11 @@ ggsave(plot = final.map, "data/plots/Figure2.jpg",
 
 ------------------------------------------------------------------------
 
-save.image("\~/Desktop/BioDataClub/BIODATA-MappingR/MappingR.RData")
+### GUARDAR IMAGEN
+
+**Mantener un registro de los archivos de análisis es crucial.** No
+queremos volver a esperar un par de días para corregir el plot porque algunos análisis pueden tardar. Crear un documento en formato **R markdown** es una buena idea para trabajar bajo los estándares de **ciencia reproducible** porque te permite **compartir todo tu código hasta el plot final.**
+
+```{r}
+save.image("~/Desktop/BioDataClub/BIODATA-MappingR/MappingR.RData")
+```
