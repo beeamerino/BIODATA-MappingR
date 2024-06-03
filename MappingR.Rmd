@@ -118,13 +118,30 @@ plot(chile)
 
 ------------------------------------------------------------------------
 
-## Datos climáticos usando geodata
+## Límites Administrativos usando **geodata**.
 
 -   **geodata** es una librería para descargar datos geográficos.
     Facilita el acceso a datos de clima, elevación, suelo, cultivos,
-    presencia de especies y límites administrativos, y es un sucesor de
-    la función `getData()` del paquete **raster**.
+    presencia de especies y límites administrativos, y es un sucesor de la función `getData()` del paquete **raster**.
+    
+Buscar información sobre la función gadm 
 
+```{r}
+?gadm
+```
+
+Descargar limites administrativos para **Chile**
+```{r}
+#chl <- gadm(country="Chile", level=1, path = ("data/layers"))
+
+chl <- readRDS("data/layers/gadm/gadm41_CHL_1_pk.rds")
+
+plot(chl)
+```
+
+
+
+## Datos ambientales usando geodata
 ### Worldclim. Temperatura Mínima usando geodata
 
 -   [WorldClim](https://worldclim.org/data/index.html) es una base de
